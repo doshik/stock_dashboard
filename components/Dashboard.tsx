@@ -88,8 +88,29 @@ interface ProcessedData {
 // Type the imported dashboard data
 const dashboardData: ProcessedData = dashboardDataJson as ProcessedData;
 
-const fontStack = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
+interface WordCloudWord {
+  text: string;
+  value: number;
+}
 
+interface ProcessedWord extends WordCloudWord {
+  size: number;
+  x: number;
+  y: number;
+  rotate: number;
+  font: string;
+}
+
+interface LayoutWord extends WordCloudWord {
+  size: number;
+  font: string;
+}
+
+interface WordCloudProps {
+  words: WordCloudWord[];
+  width?: number;
+  height?: number;
+}
 
 // D3 Word Cloud Component
 const D3WordCloud: React.FC<WordCloudProps> = ({
@@ -98,7 +119,9 @@ const D3WordCloud: React.FC<WordCloudProps> = ({
   height = 400,
 }) => {
   const svgRef = useRef<SVGSVGElement>(null);
-  const [renderedWords, setRenderedWords] = useState<Array<any>>([]);
+  const [renderedWords, setRenderedWords] = useState<ProcessedWord[]>([]);
+
+  const fontStack = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
 
   useEffect(() => {
     if (!words.length) return;
@@ -112,21 +135,28 @@ const D3WordCloud: React.FC<WordCloudProps> = ({
     const fontScale = d3
       .scaleLinear()
       .domain([
-        d3.min(processedWords, d => d.value) || 0,
-        d3.max(processedWords, d => d.value) || 1
+        d3.min(processedWords, d => d.value) ?? 0,
+        d3.max(processedWords, d => d.value) ?? 1
       ])
       .range([12, 60]);
 
+    // Pre-process words with guaranteed sizes
+    const wordsWithSize: LayoutWord[] = processedWords.map(w => ({
+      ...w,
+      size: fontScale(w.value),
+      font: fontStack
+    }));
+
     // Configure the layout
-    const layout = cloud()
+    const layout = cloud<LayoutWord>()
       .size([width, height])
-      .words(processedWords.map(w => ({ ...w, size: fontScale(w.value) })))
+      .words(wordsWithSize)
       .padding(3)
       .rotate(() => 0)
       .spiral("archimedean")
-      .font(fontStack)
+      .font(() => fontStack)
       .fontSize(d => d.size)
-      .on("end", words => setRenderedWords(words));
+      .on("end", (words) => setRenderedWords(words as ProcessedWord[]));
 
     layout.start();
   }, [words, width, height]);
@@ -135,6 +165,8 @@ const D3WordCloud: React.FC<WordCloudProps> = ({
     .scaleLinear<string>()
     .domain([0, 1])
     .range(['#60a5fa', '#1d4ed8']);
+
+  const maxValue = d3.max(words, d => d.value) ?? 1;
 
   return (
     <div className="w-full h-full flex items-center justify-center">
@@ -150,14 +182,14 @@ const D3WordCloud: React.FC<WordCloudProps> = ({
               key={i}
               className="transition-all duration-300 hover:opacity-75 cursor-pointer"
               style={{
-                fill: colorScale(word.value / d3.max(words, d => d.value)!),
+                fill: colorScale(word.value / maxValue),
                 fontSize: word.size,
                 fontFamily: 'Inter',
               }}
               textAnchor="middle"
               transform={`translate(${word.x},${word.y})`}
-              title={`${word.text}: ${word.value.toFixed(2)}`}
             >
+              <title>{`${word.text}: ${word.value.toFixed(2)}`}</title>
               {word.text}
             </text>
           ))}
