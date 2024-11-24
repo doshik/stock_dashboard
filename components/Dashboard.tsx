@@ -25,7 +25,7 @@ import { Clock, Cloud, TrendingUp } from 'lucide-react';
 import * as d3 from 'd3';
 import cloud from 'd3-cloud';
 // Import the JSON data and type it
-import dashboardDataJson from '@/data/processed_10k_data_final.json';
+import dashboardDataJson from '@/data/processed_10k_data_with_names.json';
 
 // Types
 interface WordCloudWord {
@@ -320,7 +320,7 @@ const Dashboard: React.FC = () => {
             10-K Analysis Dashboard
           </h1>
           <Select value={selectedCompany} onValueChange={setSelectedCompany}>
-            <SelectTrigger className="w-48">
+            <SelectTrigger className="w-72">
               <SelectValue placeholder="Select company" />
             </SelectTrigger>
             <SelectContent>
@@ -426,7 +426,7 @@ const Dashboard: React.FC = () => {
                 <ResponsiveContainer width="100%" height="100%">
                   <ComposedChart data={timeSeriesData}>
                     <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="year" />
+                    <XAxis dataKey="year" interval={0} />
                     <YAxis
                       yAxisId="left"
                       label={{
