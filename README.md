@@ -1,4 +1,7 @@
-## Getting Started
+# Stock Dashboard
+A dashboard for insights into the relationship between the sentiment and topics from 10K filings with the price movements of a selected stock. 
+
+## Setting Up the Dashboard
 
 You can run this locally or go to the hosted site. 
 
