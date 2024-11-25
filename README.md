@@ -1,42 +1,42 @@
-# Stock Dashboard
-A dashboard for insights into the relationship between the sentiment and topics from 10K filings with the price movements of a selected stock. 
-Hostedt site: https://stock-dashboard-f4sijbkfv-doshiks-projects.vercel.app/
+# Description
+The Stock Dashboard is an analytical tool designed to explore relationships between corporate financial reports (10K filings) and stock price movements. The project focuses on two key analytical objectives:
 
-Our goal for this project is to accomplish two main analytical tasks. First, analyze the relationship between company financial reports (10K filings) and the change in stock price 1 day, 5 days and 30 days after their release. Second, we want to categorize the 10-K filings based on their text content and look at what categories correlate to increase/decrease in stock price. Our interactive web app would illustrate our analysis and allow users to explore insights across companies. 
+1. Analyzing correlations between company 10K filings and subsequent stock price changes across multiple timeframes (1 day, 5 days, and 30 days post-release)
+2. Categorizing 10K filings based on textual content to identify which categories correlate with stock price fluctuations
 
+The project is available as an interactive web application that allows users to explore these insights across different companies.
 
-## Installation
+Hosted Version: https://stock-dashboard-f4sijbkfv-doshiks-projects.vercel.app/
 
-You can run this locally or go to the hosted [site](https://stock-dashboard-f4sijbkfv-doshiks-projects.vercel.app/). 
+# Installation
+There are two ways to access the dashboard:
 
+1. Web Access
+   - Visit the hosted version directly through the URL above
 
-To run locally in a development server:
+2. Local Development Setup
+   ```bash
+   npm install
+   npm run dev
+After installation, access the dashboard at http://localhost:3000
+# Execution
+The project's analytical components can be run through several steps:
 
-```bash
-npm install
-npm run dev
-```
+Initial Setup
+bashCopypip install -r requirements.txt
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Data Processing Pipeline
 
-
-## Running the Python Experiments. 
-
-#### Installation
-Install the required packages from the `requirements.txt`
-```
-pip install -r requirements.txt
-```
-
-#### Data preprocessing and Sentiment Extraction
-Run the script `experiments/scripts/pull_data_and_extract_sentiments.py` and notebook `experiments/notebooks/dva_sentiment_extraction.ipynb` to generate the preprocessed csv files. 
-
-#### Correlation Analysis
-Run the notebook `experiments/notebooks/dva_sentiment_extraction_and_correlation.ipynb` for correlation analysis. 
-
-#### Topic Modelling and TPR Score computation. 
-Run the script `experiments/scripts/topic_modelling.py` (preferably on a GPU machine ) to extract the topics and compute TPR scores for each topics. 
+Run experiments
+/scripts/pull_data_and_extract_sentiments.py
+Execute the notebook experiments/notebooks/dva_sentiment_extraction.ipynb
+These steps generate the necessary preprocessed CSV files
 
 
+Analysis Components
 
+Correlation Analysis: Run experiments/notebooks/dva_sentiment_extraction_and_correlation.ipynb
+Topic Modeling: Execute experiments/scripts/topic_modelling.py (GPU recommended) to:
 
+Extract topics from the filings
+Compute TPR (Topic-Price Relationship) scores for each topic
