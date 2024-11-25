@@ -1,13 +1,14 @@
 # Stock Dashboard
 A dashboard for insights into the relationship between the sentiment and topics from 10K filings with the price movements of a selected stock. 
-
-## Setting Up the Dashboard
-
-You can run this locally or go to the hosted site. 
-
 Hostedt site: https://stock-dashboard-f4sijbkfv-doshiks-projects.vercel.app/
 
-OR run the development server:
+
+## Installation
+
+You can run this locally or go to the hosted [site](https://stock-dashboard-f4sijbkfv-doshiks-projects.vercel.app/). 
+
+
+To run locally in a development server:
 
 ```bash
 npm install
