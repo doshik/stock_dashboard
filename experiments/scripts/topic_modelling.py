@@ -22,8 +22,8 @@ from nltk.tokenize import RegexpTokenizer
 
 # Only need to run once
 
-# nltk.download('stopwords')
-# nltk.download('punkt_tab')
+nltk.download('stopwords')
+nltk.download('punkt_tab')
 
 # DATA_PATH = "../data/10k_sections_small.csv"
 DATA_PATH = "../data/10k_sentences_large100_sentiments.csv"
