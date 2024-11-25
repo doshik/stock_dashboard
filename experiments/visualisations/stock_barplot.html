@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stock Price Movement Chart</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        /* General Styles */
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #1f2937;
+            color: #e5e7eb;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+/* Legend Styles */
+.legend {
+            font-size: 14px;
+            fill: #d1d5db;
+        }
+        
+        .legend .circle {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 8px;
+        }
+
+        .positive-color {
+            background-color: #34d399;
+        }
+
+        .negative-color {
+            background-color: #f87171;
+        }
+        /* Slider Styles */
+        .slider {
+            margin: 20px;
+            width: 300px;
+        }
+
+        /* Tooltip Styles */
+        .tooltip {
+            position: absolute;
+            text-align: center;
+            padding: 8px;
+            font-size: 14px;
+            background: #333;
+            color: #e5e7eb;
+            border-radius: 4px;
+            box-shadow: 0px 2px 8px rgba(0, 0, 0, 0.3);
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        /* SVG and Chart Styles */
+        svg {
+            background-color: #374151;
+            border-radius: 10px;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        .bar {
+            transition: fill 0.3s;
+        }
+
+        /* Title and Axis Labels */
+        .title {
+            fill: #f3f4f6;
+            font-size: 24px;
+            font-weight: bold;
+            text-anchor: middle;
+        }
+
+        .axis-label {
+            fill: #9ca3af;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        select {
+            padding: 8px;
+            border-radius: 4px;
+            border: none;
+            background-color: #3b4d61;
+            color: #e5e7eb;
+            outline: none;
+            font-size: 16px;
+        }
+        .axis path,
+        .axis line {
+            stroke: #9ca3af;
+        }
+        .negative-color{
+            fill:#f87171;
+            
+        }
+        .positive-color{
+            fill:#34d399;
+            
+        }
+    </style>
+</head>
+<body>
+    <div>
+        <label for="companySelect">Select a Company:</label>
+        <select id="companySelect"></select>
+    </div>
+    <div>
+        <label for="timeSlider">Select Time Frame:</label>
+        <input type="range" id="timeSlider" class="slider" min="0" max="2" step="1" value="0">
+        <span id="timeLabel">1d</span>
+    </div>
+    <svg id="chart" width="800" height="400"></svg>
+    <div class="tooltip"></div>
+
+    <script>
+        // Load CSV data
+        d3.csv("10k_sentences_small_sentiments.csv").then(data => {
+            // Process data
+            const stockData = {};
+
+            // Prepare data for each company
+            data.forEach(d => {
+                const company = d.name;
+                const returns = d.returns;
+                const jsonString = returns.replace(/'/g, '"');
+                const timeFrames = JSON.parse(jsonString);
+
+                // Initialize stock data structure
+                if (!stockData[company]) {
+                    stockData[company] = {
+                        '1d': [],
+                        '5d': [],
+                        '30d': []
+                    };
+                }
+                
+                // Collect data for each time frame
+                for (const timeFrame in timeFrames) {
+                    const entry = {
+                        year: new Date(timeFrames[timeFrame].endDate).getFullYear(),
+                        endPrice: timeFrames[timeFrame].closePriceEndDate,
+                        ret: timeFrames[timeFrame].ret
+                    };
+                    stockData[company][timeFrame].push(entry);
+                }
+            });
+
+            // Get unique company names
+            const companies = Object.keys(stockData);
+
+            // Populate dropdown
+            const selectCompany = d3.select("#companySelect");
+            companies.forEach(company => {
+                selectCompany.append("option")
+                    .text(company)
+                    .attr("value", company);
+            });
+
+            // Create initial bar graph for the first company and time frame
+            drawGraph(stockData, companies[0], '1d');
+
+            // Update graph when a new company is selected
+            selectCompany.on("change", function() {
+                const selectedCompany = d3.select(this).property("value");
+                const selectedTime = getTimeFrame();
+                drawGraph(stockData, selectedCompany, selectedTime);
+            });
+
+            // Update graph when the slider is moved
+            d3.select("#timeSlider").on("input", function() {
+                const selectedCompany = d3.select("#companySelect").property("value");
+                const selectedTime = getTimeFrame();
+                drawGraph(stockData, selectedCompany, selectedTime);
+                d3.select("#timeLabel").text(selectedTime);
+            });
+
+            // Function to get the time frame based on the slider value
+            function getTimeFrame() {
+                const sliderValue = d3.select("#timeSlider").property("value");
+                return sliderValue == 0 ? '1d' : (sliderValue == 1 ? '5d' : '30d');
+            }
+
+            // Function to draw the graph
+            // Function to draw the graph
+function drawGraph(data, company, timeFrame) {
+    const svg = d3.select("#chart");
+    svg.selectAll("*").remove(); // Clear previous graph
+
+    const margin = { top: 50, right: 30, bottom: 50, left: 50 };
+    const width = +svg.attr("width") - margin.left - margin.right;
+    const height = +svg.attr("height") - margin.top - margin.bottom;
+
+    // Prepare bar data for the selected time frame and sort it by year
+    const barData = data[company][timeFrame].sort((a, b) => a.year - b.year);
+
+    const x = d3.scaleBand()
+        .domain(barData.map(d => d.year.toString())) // Use years as domain
+        .range([0, width])
+        .padding(0.1);
+
+    const y = d3.scaleLinear()
+        .domain([0, d3.max(barData, d => d.endPrice)])
+        .range([height, 0]);
+
+    const g = svg.append("g")
+        .attr("transform", `translate(${margin.left},${margin.top})`);
+
+    // Title
+    g.append("text")
+        .attr("class", "title")
+        .attr("x", width / 2)
+        .attr("y", -20)
+        .text(`${company} - Stock Price Movement (${timeFrame})`);
+
+    // Axes
+    g.append("g")
+        .attr("class", "x-axis")
+        .attr("transform", `translate(0,${height})`)
+        .call(d3.axisBottom(x))
+        .append("text")
+        .attr("text-anchor", "middle")
+        .attr("y", 40)
+        .attr("class", "axis-label")
+        .attr("x", width / 2)
+        .text("Year");
+
+    g.append("g")
+        .attr("class", "y-axis")
+        .call(d3.axisLeft(y))
+        .append("text")
+        .attr("class", "axis-label")
+        .attr("transform", "rotate(-90)")
+        .attr("y", -30)
+        .attr("x", -height / 2)
+        .attr("text-anchor", "middle")
+        .text("Stock Price");
+
+    // Create bars
+    g.selectAll(".bar")
+        .data(barData)
+        .enter().append("rect")
+        .attr("class", "bar")
+        .attr("x", d => x(d.year.toString())) // Use years as x value
+        .attr("y", d => y(d.endPrice))
+        .attr("width", x.bandwidth())
+        .attr("height", d => height - y(d.endPrice))
+        .attr("fill", d => d.ret > 0 ? "#34d399" : "#f87171") // Green for positive return, red for negative
+        .on("mouseover", (event, d) => {
+            d3.select(".tooltip")
+                .style("opacity", 1)
+                .html(`Year: ${d.year}<br>End Price: $${d.endPrice.toFixed(2)}<br>Return: ${(d.ret * 100).toFixed(2)}%`)
+                .style("left", `${event.pageX + 10}px`)
+                .style("top", `${event.pageY - 30}px`);
+        })
+        .on("mouseout", () => d3.select(".tooltip").style("opacity", 0));
+    
+    // Legend
+    const legend = g.append("g")
+        .attr("transform", `translate(${width - 700}, 0)`);
+
+    legend.append("circle")
+        .attr("class", "circle positive-color")
+        .attr("cx", 0)
+        .attr("cy", 20)
+        .attr("r", 6);
+
+    legend.append("text")
+        .attr("x", 15)
+        .attr("y", 24)
+        .attr("class", "legend")
+        .text("Positive Return");
+
+    legend.append("circle")
+        .attr("class", "circle negative-color")
+        .attr("cx", 0)
+        .attr("cy", 40)
+        .attr("r", 6);
+
+    legend.append("text")
+        .attr("x", 15)
+        .attr("y", 44)
+        .attr("class", "legend")
+        .text("Negative Return");
+}
+        });
+    </script>
+</body>
+</html>

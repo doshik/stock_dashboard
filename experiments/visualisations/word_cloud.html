@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Word Cloud</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3-cloud/1.2.5/d3.layout.cloud.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #1f2937;
+            color: #e5e7eb;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        svg {
+            border: 1px solid #374151;
+            background-color: #374151;
+        }
+        select {
+            margin-bottom: 20px;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #e5e7eb;
+            background-color: #2c3e50;
+            color: #e5e7eb;
+        }
+    </style>
+</head>
+<body>
+    <h1>Word Cloud</h1>
+    <select id="companySelect"></select>
+    <svg id="wordCloud" width="800" height="400"></svg>
+    
+    <script>
+        // Fetch the CSV data
+        d3.csv("company_word_counts.csv").then(data => {
+            // Populate dropdown
+            const companySelect = d3.select("#companySelect");
+            data.forEach(row => {
+                companySelect.append("option")
+                    .text(row.name)
+                    .attr("value", row.word_counts);
+            });
+
+            // Create word cloud when a company is selected
+            companySelect.on("change", function() {
+                const selectedWordCounts = this.value;
+                generateWordCloud(selectedWordCounts);
+            });
+
+            // Generate initial word cloud for the first company
+            const initialWordCounts = data[0].word_counts;
+            generateWordCloud(initialWordCounts);
+            
+            // Function to generate the word cloud
+function generateWordCloud(wordCounts) {
+    // Clear previous word cloud
+    d3.select("#wordCloud").selectAll("*").remove();
+
+    // Convert the word counts string to an object
+    const parsedData = JSON.parse(wordCounts.replace(/'/g, '"'));
+    const wordArray = Object.keys(parsedData).map(key => ({
+        text: key,
+        size: parsedData[key] // Use frequency directly for size
+    }));
+
+    // Find min and max sizes for scaling
+    const minSize = d3.min(wordArray, d => d.size);
+    const maxSize = d3.max(wordArray, d => d.size);
+
+    // Create a scale for word sizes
+    const sizeScale = d3.scaleLinear()
+        .domain([minSize, maxSize])
+        .range([10, 100]); // Map the frequency range to font size range (10px to 100px)
+
+    // Create the word cloud layout
+    const layout = d3.layout.cloud()
+        .size([800, 400])
+        .words(wordArray.map(d => ({
+            text: d.text,
+            size: sizeScale(d.size) // Apply the size scale here
+        })))
+        .padding(5)
+        .rotate(() => Math.floor(Math.random() * 2) * 90) // Randomly rotate words
+        .fontSize(d => d.size)
+        .on("end", draw);
+
+    // Start the layout
+    layout.start();
+
+    // Function to draw the word cloud
+    function draw(words) {
+        const svg = d3.select("#wordCloud")
+            .append("g")
+            .attr("transform", "translate(400,200)");
+
+        const text = svg.selectAll("text")
+            .data(words)
+            .enter().append("text")
+            .style("font-size", d => d.size + "px")
+            .style("font-family", "Arial")
+            .style("fill", () => d3.scaleOrdinal(d3.schemeCategory10)()) // Assign random colors
+            .attr("text-anchor", "middle")
+            .attr("transform", d => `translate(${d.x},${d.y}) rotate(${d.rotate})`)
+            .text(d => d.text)
+            .on("mouseover", function (event, d) {
+                d3.select(this)
+                    .transition()
+                    .duration(200)
+                    .style("font-size", (d.size + 10) + "px"); // Increase size on hover
+            })
+            .on("mouseout", function (event, d) {
+                d3.select(this)
+                    .transition()
+                    .duration(200)
+                    .style("font-size", d.size + "px"); // Revert size on mouse out
+            });
+    }
+}
+
+        }).catch(error => {
+            console.error('Error loading the CSV file:', error);
+        });
+    </script>
+</body>
+</html>

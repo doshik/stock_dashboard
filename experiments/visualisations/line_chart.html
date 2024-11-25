@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sentiment Analysis Chart</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        /* General Styles */
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #1f2937;
+            color: #e5e7eb;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+
+        /* Dropdown Styles */
+        .dropdown {
+            margin: 20px;
+            font-size: 16px;
+        }
+
+        select {
+            padding: 8px;
+            border-radius: 4px;
+            border: none;
+            background-color: #3b4d61;
+            color: #e5e7eb;
+            outline: none;
+            font-size: 16px;
+        }
+
+        /* Tooltip Styles */
+        .tooltip {
+            position: absolute;
+            text-align: center;
+            padding: 8px;
+            font-size: 14px;
+            background: #333;
+            color: #e5e7eb;
+            border-radius: 4px;
+            box-shadow: 0px 2px 8px rgba(0, 0, 0, 0.3);
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        /* SVG and Chart Styles */
+        svg {
+            background-color: #374151;
+            border-radius: 10px;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        .line {
+            fill: none;
+            stroke-width: 2.5px;
+            transition: opacity 0.3s;
+        }
+
+        .positive {
+            stroke: #34d399; /* Green */
+        }
+
+        .negative {
+            stroke: #f87171; /* Red */
+        }
+
+           .negative-color{
+            fill:#f87171;
+            
+        }
+        .positive-color{
+            fill:#34d399;
+            
+        }
+        .dot {
+            stroke: #1f2937;
+            stroke-width: 2px;
+            cursor: pointer;
+        }
+
+        .positive-dot {
+            fill: #34d399;
+        }
+
+        .negative-dot {
+            fill: #f87171;
+        }
+
+        /* Title and Axis Labels */
+        .title {
+            fill: #f3f4f6;
+            font-size: 24px;
+            font-weight: bold;
+            text-anchor: middle;
+        }
+
+        .axis-label {
+            fill: #9ca3af;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .axis path,
+        .axis line {
+            stroke: #9ca3af;
+        }
+
+        /* Legend Styles */
+        .legend {
+            font-size: 14px;
+            fill: #d1d5db;
+        }
+        
+        .legend .circle {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 8px;
+        }
+
+        .positive-color {
+            background-color: #34d399;
+        }
+
+        .negative-color {
+            background-color: #f87171;
+        }
+    </style>
+</head>
+<body>
+    <div class="dropdown">
+        <label for="companySelect">Select a Company:</label>
+        <select id="companySelect"></select>
+    </div>
+    <svg id="chart" width="800" height="400"></svg>
+    <div class="tooltip"></div>
+
+    <script>
+        // Load CSV data
+        d3.csv("10k_sentences_small_sentiments.csv").then(data => {
+            // Process data
+            const sentimentCounts = {};
+
+            // Count sentiment sentences for each company and year
+            data.forEach(d => {
+                d.filingDate = new Date(d.reportDate); // Parse date
+                const year = d.filingDate.getFullYear(); // Extract year
+
+                // Initialize counts for the company and year if not already done
+                if (!sentimentCounts[d.name]) {
+                    sentimentCounts[d.name] = {};
+                }
+                if (!sentimentCounts[d.name][year]) {
+                    sentimentCounts[d.name][year] = { total: 0, positive: 0, negative: 0 };
+                }
+
+                // Count total sentences
+                sentimentCounts[d.name][year].total += 1;
+
+                // Count positive and negative sentiment sentences
+                if (d.sentiment === "positive") {
+                    sentimentCounts[d.name][year].positive += 1;
+                } else if (d.sentiment === "negative") {
+                    sentimentCounts[d.name][year].negative += 1;
+                }
+            });
+
+            // Prepare data for the graph
+            const sentimentRatios = [];
+            for (const company in sentimentCounts) {
+                for (const year in sentimentCounts[company]) {
+                    const count = sentimentCounts[company][year];
+                    sentimentRatios.push({
+                        name: company,
+                        year: year,
+                        positiveRatio: count.total > 0 ? (count.positive / count.total)*100 : 0,
+                        negativeRatio: count.total > 0 ? (count.negative / count.total)*100 : 0
+                    });
+                }
+            }
+
+            // Get unique company names
+            const companies = Array.from(new Set(sentimentRatios.map(d => d.name)));
+
+            // Populate dropdown
+            const select = d3.select("#companySelect");
+            companies.forEach(company => {
+                select.append("option")
+                    .text(company)
+                    .attr("value", company);
+            });
+
+            // Create initial line graph for the first company
+            drawGraph(sentimentRatios, companies[0]);
+
+            // Update graph when a new company is selected
+            select.on("change", function() {
+                const selectedCompany = d3.select(this).property("value");
+                drawGraph(sentimentRatios, selectedCompany);
+            });
+
+            // Function to draw the graph
+            function drawGraph(data, company) {
+                const filteredData = data.filter(d => d.name === company);
+
+                const svg = d3.select("#chart");
+                svg.selectAll("*").remove(); // Clear previous graph
+
+                const margin = { top: 50, right: 30, bottom: 50, left: 50 };
+                const width = +svg.attr("width") - margin.left - margin.right;
+                const height = +svg.attr("height") - margin.top - margin.bottom;
+
+                const x = d3.scaleBand()
+                    .domain(filteredData.map(d => d.year))
+                    .range([0, width])
+                    .padding(0.1);
+
+                const y = d3.scaleLinear()
+                    .domain([0, 100])
+                    .range([height, 0]);
+
+                const g = svg.append("g")
+                    .attr("transform", `translate(${margin.left},${margin.top})`);
+
+                // Title
+                g.append("text")
+                    .attr("class", "title")
+                    .attr("x", width / 2)
+                    .attr("y", -20)
+                    .text("Positive and Negative Sentiment Per Year");
+
+                // Axes
+                g.append("g")
+                    .attr("class", "x-axis")
+                    .attr("transform", `translate(0,${height})`)
+                    .call(d3.axisBottom(x))
+                    .append("text")
+                    .attr("class", "axis-label")
+                    .attr("x", width / 2)
+                    .attr("y", 35)
+                    .attr("text-anchor", "middle")
+                    .text("Year");
+
+                g.append("g")
+                    .attr("class", "y-axis")
+                    .call(d3.axisLeft(y))
+                    .append("text")
+                    .attr("class", "axis-label")
+                    .attr("transform", "rotate(-90)")
+                    .attr("y", -30)
+                    .attr("x", -height / 2)
+                    .attr("text-anchor", "middle")
+                    .text("Sentiment %");
+
+                // Line generators
+                const linePositive = d3.line()
+                    .x(d => x(d.year) + x.bandwidth() / 2)
+                    .y(d => y(d.positiveRatio));
+
+                const lineNegative = d3.line()
+                    .x(d => x(d.year) + x.bandwidth() / 2)
+                    .y(d => y(d.negativeRatio));
+
+                // Positive line
+                g.append("path")
+                    .datum(filteredData)
+                    .attr("class", "line positive")
+                    .attr("d", linePositive);
+
+                // Negative line
+                g.append("path")
+                    .datum(filteredData)
+                    .attr("class", "line negative")
+                    .attr("d", lineNegative);
+
+                // Tooltip
+                const tooltip = d3.select(".tooltip");
+
+                // Positive dots with tooltip
+                g.selectAll(".positive-dot")
+                    .data(filteredData)
+                    .enter().append("circle")
+                    .attr("class", "dot positive-dot")
+                    .attr("cx", d => x(d.year) + x.bandwidth() / 2)
+                    .attr("cy", d => y(d.positiveRatio))
+                    .attr("r", 4)
+                    .on("mouseover", (event, d) => {
+                        tooltip.style("opacity", 1);
+                        tooltip.html(`Year: ${d.year}<br>Positive: ${(d.positiveRatio).toFixed(2)}%`)
+                            .style("left", `${event.pageX + 10}px`)
+                            .style("top", `${event.pageY - 30}px`);
+                    })
+                    .on("mouseout", () => tooltip.style("opacity", 0));
+
+                // Negative dots with tooltip
+                g.selectAll(".negative-dot")
+                    .data(filteredData)
+                    .enter().append("circle")
+                    .attr("class", "dot negative-dot")
+                    .attr("cx", d => x(d.year) + x.bandwidth() / 2)
+                    .attr("cy", d => y(d.negativeRatio))
+                    .attr("r", 4)
+                    .on("mouseover", (event, d) => {
+                        tooltip.style("opacity", 1);
+                        tooltip.html(`Year: ${d.year}<br>Negative: ${(d.negativeRatio).toFixed(2)}%`)
+                            .style("left", `${event.pageX + 10}px`)
+                            .style("top", `${event.pageY - 30}px`);
+                    })
+                    .on("mouseout", () => tooltip.style("opacity", 0));
+
+                // Legend
+                const legend = g.append("g")
+                    .attr("transform", `translate(${width - 150}, 10)`);
+
+                legend.append("text")
+                    .attr("class", "legend")
+                    .attr("y", 0)
+                    .text("Legend");
+
+                legend.append("circle")
+                    .attr("class", "circle positive-color")
+                    .attr("cx", 0)
+                    .attr("cy", 20)
+                    .attr("r", 6);
+
+                legend.append("text")
+                    .attr("x", 15)
+                    .attr("y", 24)
+                    .attr("class", "legend")
+                    .text("Positive Sentiment");
+
+                legend.append("circle")
+                    .attr("class", "circle negative-color")
+                    .attr("cx", 0)
+                    .attr("cy", 40)
+                    .attr("r", 6);
+
+                legend.append("text")
+                    .attr("x", 15)
+                    .attr("y", 44)
+                    .attr("class", "legend")
+                    .text("Negative Sentiment");
+            }
+        });
+    </script>
+</body>
+</html>
