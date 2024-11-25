@@ -22,21 +22,15 @@ After installation, access the dashboard at http://localhost:3000
 # Execution
 The project's analytical components can be run through several steps:
 
-Initial Setup
-bashCopypip install -r requirements.txt
+* Install dependencies
+```pip install -r requirements.txt```
 
-Data Processing Pipeline
+* Data Processing Pipeline :
+   * Run the script `/scripts/pull_data_and_extract_sentiments.py`
+   * Execute the notebook experiments/notebooks/dva_sentiment_extraction.ipynb.
+   * These steps generate the necessary preprocessed CSV files
 
-Run experiments
-/scripts/pull_data_and_extract_sentiments.py
-Execute the notebook experiments/notebooks/dva_sentiment_extraction.ipynb
-These steps generate the necessary preprocessed CSV files
-
-
-Analysis Components
-
-Correlation Analysis: Run experiments/notebooks/dva_sentiment_extraction_and_correlation.ipynb
-Topic Modeling: Execute experiments/scripts/topic_modelling.py (GPU recommended) to:
-
-Extract topics from the filings
-Compute TPR (Topic-Price Relationship) scores for each topic
+* Correlation Analysis: Run experiments/notebooks/dva_sentiment_extraction_and_correlation.ipynb
+* Topic Modeling: Execute experiments/scripts/topic_modelling.py (GPU recommended)
+   * Extract topics from the filings
+   * Compute TPR (Topic-Price Relationship) scores for each topic
