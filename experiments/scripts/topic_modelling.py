@@ -3,6 +3,18 @@ import numpy as np
 import nltk
 from nltk.corpus import stopwords
 import ast
+import os
+
+from sentence_transformers import SentenceTransformer
+from bertopic import BERTopic
+from cuml.cluster import HDBSCAN
+from cuml.manifold import UMAP
+
+# prep the embeddings
+sentence_model = SentenceTransformer("all-MiniLM-L6-v2")
+
+
+
 
 #Remove stop words
 from nltk.tokenize import word_tokenize
@@ -10,11 +22,56 @@ from nltk.tokenize import RegexpTokenizer
 
 # Only need to run once
 
-# nltk.download('stopwords')
-# nltk.download('punkt_tab')
+nltk.download('stopwords')
+nltk.download('punkt_tab')
+
+# DATA_PATH = "../data/10k_sections_small.csv"
+DATA_PATH = "../data/10k_sentences_large100_sentiments.csv"
+
+print(f"Loading dataset")
 
 # Load the dataset. This is where you modify to large dataset
-df = pd.read_csv("../data/10k_sections_small.csv").drop("Unnamed: 0", axis=1)  #TODO
+
+df = pd.read_csv(DATA_PATH).drop("Unnamed: 0", axis=1)  #TODO
+embedding_file = 'sentence_embeddings.npy'
+print(f"Embedding generation")
+
+docs = df['sentence']
+if os.path.exists(embedding_file):
+    print(f"Embeddings file '{embedding_file}' already exists. Loading embeddings...")
+    # Load the existing embeddings
+    embeddings = np.load(embedding_file)
+else:
+    print(f"Embeddings file '{embedding_file}' not found. Calculating embeddings...")
+    # Initialize the SBERT model
+    model = SentenceTransformer('all-MiniLM-L6-v2')  # Replace with your desired SBERT model
+
+    # Generate embeddings
+    embeddings = model.encode(df['sentence'], show_progress=True, batch_size=1024)
+
+    # Save embeddings as a NumPy array
+    np.save(embedding_file, embeddings)
+    print(f"Embeddings saved as '{embedding_file}'.")
+
+
+
+print(f"Starting topic modelling")
+# Run the topic modelling
+from bertopic import BERTopic
+
+umap_model = UMAP(n_components=5, n_neighbors=15, min_dist=0.0)
+hdbscan_model = HDBSCAN(min_samples=10, gen_min_span_tree=True, prediction_data=True)
+
+topic_model = BERTopic(umap_model=umap_model, hdbscan_model=hdbscan_model, verbose=True )
+
+topics, probs = topic_model.fit_transform(docs, embeddings)
+
+df['topics'] = topics
+
+print("Done with topic modelling....")
+
+
+
 
 # Pre-processing
 tokenizer = RegexpTokenizer(r'\w+')
@@ -27,13 +84,13 @@ def remove_stopwords(sentence):
     return ' '.join(filtered)
 
 
-df['text'] = df['text'].map(remove_stopwords)
+df['sentence'] = df['sentence'].map(remove_stopwords)
 
 print("Done preprocessing...")
 
 # Get tfidf values for each word
 from sklearn.feature_extraction.text import TfidfVectorizer
-docs = df['text'].to_list()
+docs = df['sentence'].to_list()
 tfidf = TfidfVectorizer()
  
 # get tf-df values
@@ -46,7 +103,7 @@ print("Done tfidf.....")
 score_sum = {}
 score_count = {}
 for i, row in df.iterrows():
-    words = row['text'].split(' ')
+    words = row['sentence'].split(' ')
     returns = ast.literal_eval(row['returns'])
     for w in words:
         if w not in tfidf.vocabulary_:
@@ -68,7 +125,7 @@ print("Got scores for each word....")
 
 ## Topic modelling
 # Load the original dataset again
-df = pd.read_csv("../data/10k_sections_small.csv").drop("Unnamed: 0", axis=1) #TODO
+df = pd.read_csv(DATA_PATH).drop("Unnamed: 0", axis=1) #TODO
 tokenizer = RegexpTokenizer(r'\w+')
 
 stop_words = set(stopwords.words('english'))
@@ -79,18 +136,9 @@ def remove_stopwords(sentence):
     return ' '.join(filtered)
 
 
-df['text'] = df['text'].map(remove_stopwords)
+df['sentence'] = df['sentence'].map(remove_stopwords)
 
-# Run the topic modelling
-from bertopic import BERTopic
 
-topic_model = BERTopic()
-docs = df['text']
-topics, probs = topic_model.fit_transform(docs)
-
-df['topics'] = topics
-
-print("Done with topic modelling....")
 
 # Assign score to each topic
 topic_info = topic_model.get_topic_info()
@@ -110,9 +158,9 @@ for i, row in topic_info.iterrows():
 print("Assigned score for each topic...")
 
 ## Getting top 5 and bottom 5 topics for each 10k filing
-final_df = df[["docID", "text", "topics"]]
+final_df = df[["docID", "sentence", "topics", "name"]]
 final_df = final_df[final_df.topics != -1]
-final_df = final_df.drop('text', axis=1).groupby('docID').aggregate(set)
+final_df = final_df.drop('sentence', axis=1).groupby(['docID', 'name']).aggregate(set)
 
 def get_extreme_topics(row):
     topic_df = topic_info.loc[topic_info.Topic.isin(row['topics']), ["Topic", "Stock_return_score"]]
@@ -128,8 +176,8 @@ print("Filtered top 5 and bottom 5 topics...")
 print("Saving files....")
 
 ## Writing results
-final_df.to_csv('topic_assignments_per_10k_filing.csv', index=False)
-topic_info.to_csv("topic_info.csv", index=False)
+final_df.to_csv('topic_assignments_per_10k_filing_large.csv')
+topic_info.to_csv("topic_info_large.csv", index=False)
 
 print("Saved files.")
 print("Done!")

@@ -1,0 +1,8 @@
+pandas
+tqdm
+numpy
+transformers
+datasets
+nltk
+sentence-transformers
+bertopic

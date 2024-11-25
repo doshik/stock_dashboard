@@ -1,42 +1,42 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Stock Dashboard
+A dashboard for insights into the relationship between the sentiment and topics from 10K filings with the price movements of a selected stock. 
+Hostedt site: https://stock-dashboard-f4sijbkfv-doshiks-projects.vercel.app/
 
-## Getting Started
+Our goal for this project is to accomplish two main analytical tasks. First, analyze the relationship between company financial reports (10K filings) and the change in stock price 1 day, 5 days and 30 days after their release. Second, we want to categorize the 10-K filings based on their text content and look at what categories correlate to increase/decrease in stock price. Our interactive web app would illustrate our analysis and allow users to explore insights across companies. 
 
-First, run the development server:
+
+## Installation
+
+You can run this locally or go to the hosted [site](https://stock-dashboard-f4sijbkfv-doshiks-projects.vercel.app/). 
+
+
+To run locally in a development server:
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Running the Python Experiments. 
 
-## Learn More
+#### Installation
+Install the required packages from the `requirements.txt`
+```
+pip install -r requirements.txt
+```
 
-To learn more about Next.js, take a look at the following resources:
+#### Data preprocessing and Sentiment Extraction
+Run the script `experiments/scripts/pull_data_and_extract_sentiments.py` and notebook `experiments/notebooks/dva_sentiment_extraction.ipynb` to generate the preprocessed csv files. 
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+#### Correlation Analysis
+Run the notebook `experiments/notebooks/dva_sentiment_extraction_and_correlation.ipynb` for correlation analysis. 
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+#### Topic Modelling and TPR Score computation. 
+Run the script `experiments/scripts/topic_modelling.py` (preferably on a GPU machine ) to extract the topics and compute TPR scores for each topics. 
 
-## Deploy on Vercel
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
-# stock_dashboard
-<<<<<<< HEAD
-# stock_dashboard
-# stock_dashboard
-=======
->>>>>>> 344a00c03f9f1bca31c7a244be52bfd27910469f
+
