@@ -14,7 +14,7 @@ npm run dev
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
 
-## Running the Experiments. 
+## Running the Python Experiments. 
 
 #### Installation
 Install the required packages from the `requirements.txt`
