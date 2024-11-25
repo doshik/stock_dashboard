@@ -2,6 +2,8 @@
 A dashboard for insights into the relationship between the sentiment and topics from 10K filings with the price movements of a selected stock. 
 Hostedt site: https://stock-dashboard-f4sijbkfv-doshiks-projects.vercel.app/
 
+Our goal for this project is to accomplish two main analytical tasks. First, analyze the relationship between company financial reports (10K filings) and the change in stock price 1 day, 5 days and 30 days after their release. Second, we want to categorize the 10-K filings based on their text content and look at what categories correlate to increase/decrease in stock price. Our interactive web app would illustrate our analysis and allow users to explore insights across companies. 
+
 
 ## Installation
 
